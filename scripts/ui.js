@@ -1,95 +1,217 @@
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
-export default function createUI(planetParams, atmosphereParams, atmosphere, bloomPass) {
+function randomInRange(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+const presets = {
+  'Star': {
+    radius: [25, 40],
+    type: [3],
+    amplitude: [0.9, 1.4],
+    sharpness: [3.5, 5.0],
+    period: [0.8, 1.3],
+    octaves: [8, 10],
+    colors: [
+        { r: 1, g: 0.9, b: 0.4 }, { r: 1, g: 0.5, b: 0.2 }, { r: 1, g: 0.2, b: 0 },
+        { r: 0.9, g: 0.1, b: 0 }, { r: 0.7, g: 0, b: 0 }
+    ],
+    bloom: { threshold: 0.7, strength: 0.9, radius: 1.1 },
+    lighting: { ambient: [0.7, 0.9], diffuse: [0.1, 0.2], specular: [0.1, 0.2], shininess: [2, 5] },
+    bump: { strength: [0.1, 0.3], offset: [0.001, 0.005] }
+  },
+  'Neutron Star': {
+    radius: [10, 15],
+    type: [1],
+    amplitude: [0.1, 0.2],
+    sharpness: [1.0, 2.5],
+    period: [0.4, 0.8],
+    octaves: [2, 4],
+    colors: [
+        { r: 0.8, g: 0.9, b: 1 }, { r: 0.9, g: 1, b: 1 }, { r: 1, g: 1, b: 1 },
+        { r: 0.9, g: 0.9, b: 1 }, { r: 0.8, g: 0.8, b: 1 }
+    ],
+    bloom: { threshold: 0.8, strength: 1.0, radius: 1.3 },
+    lighting: { ambient: [1.0, 1.25], diffuse: [0.1, 0.2], specular: [0.2, 0.4], shininess: [5, 10] },
+    bump: { strength: [0.0, 0.1], offset: [0.001, 0.002] }
+  },
+  'Asteroid': {
+    radius: [5, 12],
+    type: [3],
+    amplitude: [0.8, 1.3],
+    sharpness: [4.0, 5.5],
+    period: [0.2, 0.4],
+    octaves: [7, 10],
+    colors: [
+        { r: 0.5, g: 0.45, b: 0.4 }, { r: 0.6, g: 0.55, b: 0.5 }, { r: 0.7, g: 0.65, b: 0.6 },
+        { r: 0.55, g: 0.5, b: 0.45 }, { r: 0.45, g: 0.4, b: 0.35 }
+    ],
+    bloom: { threshold: 0, strength: 0.1, radius: 0.1 },
+    lighting: { ambient: [0.05, 0.1], diffuse: [0.8, 1.2], specular: [0.2, 0.5], shininess: [2, 8] },
+    bump: { strength: [0.7, 1.0], offset: [0.002, 0.008] }
+  },
+  'Shooting Star (Comet)': {
+      radius: [6, 9],
+      type: [1],
+      amplitude: [0.2, 0.4],
+      sharpness: [1.5, 3.0],
+      period: [0.9, 1.8],
+      octaves: [4, 7],
+      colors: [
+          { r: 0.7, g: 0.8, b: 1.0 }, { r: 0.8, g: 0.9, b: 1.0 }, { r: 0.9, g: 0.95, b: 1.0 },
+          { r: 1.0, g: 1.0, b: 1.0 }, { r: 0.9, g: 0.9, b: 0.9 }
+      ],
+      bloom: { threshold: 0.7, strength: 0.8, radius: 1.0 },
+      lighting: { ambient: [0.1, 0.2], diffuse: [0.7, 1.0], specular: [0.8, 1.8], shininess: [10, 20] },
+      bump: { strength: [0.2, 0.4], offset: [0.001, 0.005] }
+  },
+  'Moon': {
+      radius: [8, 12],
+      type: [3],
+      amplitude: [0.3, 0.6],
+      sharpness: [2.0, 4.0],
+      period: [0.4, 0.8],
+      octaves: [7, 9],
+      colors: [
+          { r: 0.6, g: 0.6, b: 0.6 }, { r: 0.7, g: 0.7, b: 0.7 }, { r: 0.8, g: 0.8, b: 0.8 },
+          { r: 0.75, g: 0.75, b: 0.75 }, { r: 0.65, g: 0.65, b: 0.65 }
+      ],
+      bloom: { threshold: 0.1, strength: 0.15, radius: 0.2 },
+      lighting: { ambient: [0.05, 0.1], diffuse: [0.8, 1.2], specular: [0.3, 0.6], shininess: [3, 9] },
+      bump: { strength: [0.4, 0.7], offset: [0.001, 0.006] }
+  },
+  'Rocky Planet': {
+    radius: [15, 22],
+    type: [2, 3],
+    amplitude: [0.6, 1.1],
+    sharpness: [1.5, 3.5],
+    period: [0.5, 1.1],
+    octaves: [7, 10],
+    colors: [
+        { r: 0.1, g: 0.2, b: 0.4 }, { r: 0.4, g: 0.3, b: 0.2 }, { r: 0.2, g: 0.4, b: 0.1 },
+        { r: 0.6, g: 0.6, b: 0.6 }, { r: 0.9, g: 0.9, b: 0.9 }
+    ],
+    bloom: { threshold: 0.1, strength: 0.2, radius: 0.4 },
+    lighting: { ambient: [0.05, 0.1], diffuse: [0.8, 1.2], specular: [0.5, 1.5], shininess: [5, 15] },
+    bump: { strength: [0.3, 0.6], offset: [0.001, 0.005] }
+  },
+  'Aquaplanet': {
+    radius: [18, 25],
+    type: [1, 2],
+    amplitude: [0.2, 0.4],
+    sharpness: [0.8, 2.2],
+    period: [0.9, 1.6],
+    octaves: [5, 8],
+    colors: [
+      { r: 0.0, g: 0.1, b: 0.3 }, { r: 0.1, g: 0.5, b: 0.2 }, { r: 0.5, g: 0.2, b: 0.8 },
+      { r: 0.8, g: 0.1, b: 0.2 }, { r: 0.2, g: 0.9, b: 0.9 }
+    ],
+    bloom: { threshold: 0.2, strength: 0.3, radius: 0.4 },
+    lighting: { ambient: [0.05, 0.1], diffuse: [0.8, 1.2], specular: [1.0, 2.5], shininess: [15, 25] },
+    bump: { strength: [0.1, 0.3], offset: [0.001, 0.004] }
+  },
+  'Gas Planet': {
+      radius: [30, 50],
+      type: [1],
+      amplitude: [0.1, 0.3],
+      sharpness: [1.0, 2.0],
+      period: [1.2, 2.0],
+      octaves: [3, 5],
+      colors: [
+          { r: 0.8, g: 0.7, b: 0.6 }, { r: 0.6, g: 0.5, b: 0.4 }, { r: 0.9, g: 0.8, b: 0.7 },
+          { r: 0.7, g: 0.6, b: 0.5 }, { r: 0.85, g: 0.75, b: 0.65 }
+      ],
+      bloom: { threshold: 0.1, strength: 0.2, radius: 0.5 },
+      lighting: { ambient: [0.1, 0.2], diffuse: [0.9, 1.3], specular: [0.1, 0.3], shininess: [2, 8] },
+      bump: { strength: [0.0, 0.1], offset: [0.001, 0.003] }
+  },
+};
+
+export default function createUI(planetParams, atmosphereParams, atmosphere, bloomPass, planet) {
   const gui = new GUI();
+  gui.title("Celestial Controls");
 
-  const terrainFolder = gui.addFolder('Terrain');
-  terrainFolder.add(planetParams.type, 'value', { simplex: 1, fractal: 2, ridgedFractal: 3 }).name('Type');
-  terrainFolder.add(planetParams.amplitude, 'value', 0.1, 1.5).name('Amplitude');
-  terrainFolder.add(planetParams.sharpness, 'value', 0, 5).name('Sharpness');
-  terrainFolder.add(planetParams.offset, 'value', -2, 2).name('Offset');
-  terrainFolder.add(planetParams.period, 'value', 0.1, 2).name('Period');
-  terrainFolder.add(planetParams.persistence, 'value', 0, 1).name('Persistence');
-  terrainFolder.add(planetParams.lacunarity, 'value', 1, 3).name('Lacunarity');
-  terrainFolder.add(planetParams.octaves, 'value', 1, 8, 1).name('Octaves');
-  terrainFolder.onChange((value) => {
-    atmosphere.update();
-  });
+  const celestialState = {
+    objectType: 'Rocky Planet'
+  };
 
-  const layersFolder = terrainFolder.addFolder('Layers').close();
-  const layer1Folder = layersFolder.addFolder('Layer 1');
-  layer1Folder.add(planetParams.color1.value, 'r', 0, 1).name('Red');
-  layer1Folder.add(planetParams.color1.value, 'g', 0, 1).name('Green');
-  layer1Folder.add(planetParams.color1.value, 'b', 0, 1).name('Blue');
+  const actions = {
+    randomize: () => {
+      if (!planet.visible) {
+        planet.visible = true;
+      }
 
-  const layer2Folder = layersFolder.addFolder('Layer 2');
-  layer2Folder.add(planetParams.transition2, 'value', 0, 3).name('Transition Point');
-  layer2Folder.add(planetParams.blend12, 'value', 0, 1).name('Blend Factor (1->2)');
-  layer2Folder.add(planetParams.color2.value, 'r', 0, 1).name('Red');
-  layer2Folder.add(planetParams.color2.value, 'g', 0, 1).name('Green');
-  layer2Folder.add(planetParams.color2.value, 'b', 0, 1).name('Blue');
+      const objectType = celestialState.objectType;
+      const preset = presets[objectType];
+      if (!preset) return;
 
-  const layer3Folder = layersFolder.addFolder('Layer 3');
-  layer3Folder.add(planetParams.transition3, 'value', 0, 3).name('Transition Point');
-  layer3Folder.add(planetParams.blend23, 'value', 0, 1).name('Blend Factor (2->3)');
-  layer3Folder.add(planetParams.color3.value, 'r', 0, 1).name('Red');
-  layer3Folder.add(planetParams.color3.value, 'g', 0, 1).name('Green');
-  layer3Folder.add(planetParams.color3.value, 'b', 0, 1).name('Blue');
+      planetParams.radius.value = randomInRange(...preset.radius);
+      atmosphereParams.radius.value = planetParams.radius.value + 1;
 
-  const layer4Folder = layersFolder.addFolder('Layer 4');
-  layer4Folder.add(planetParams.transition4, 'value', 0, 3).name('Transition Point');
-  layer4Folder.add(planetParams.blend34, 'value', 0, 1).name('Blend Factor (3->4)');
-  layer4Folder.add(planetParams.color4.value, 'r', 0, 1).name('Red');
-  layer4Folder.add(planetParams.color4.value, 'g', 0, 1).name('Green');
-  layer4Folder.add(planetParams.color4.value, 'b', 0, 1).name('Blue');
+      const typeIndex = Math.floor(Math.random() * preset.type.length);
+      planetParams.type.value = preset.type[typeIndex];
+      
+      planetParams.amplitude.value = randomInRange(...preset.amplitude);
+      planetParams.sharpness.value = randomInRange(...preset.sharpness);
+      planetParams.period.value = randomInRange(...preset.period);
+      planetParams.octaves.value = Math.floor(randomInRange(...preset.octaves));
+      
+      for (let i = 0; i < 5; i++) {
+          const colorPreset = preset.colors[i];
+          const colorParam = planetParams[`color${i+1}`].value;
+          colorParam.setRGB(
+              Math.max(0, Math.min(1, colorPreset.r + randomInRange(-0.02, 0.02))),
+              Math.max(0, Math.min(1, colorPreset.g + randomInRange(-0.02, 0.02))),
+              Math.max(0, Math.min(1, colorPreset.b + randomInRange(-0.02, 0.02)))
+          );
+      }
 
-  const layer5Folder = layersFolder.addFolder('Layer 5');
-  layer5Folder.add(planetParams.transition5, 'value', 0, 3).name('Transition Point');
-  layer5Folder.add(planetParams.blend45, 'value', 0, 1).name('Blend Factor (4->5)');
-  layer5Folder.add(planetParams.color5.value, 'r', 0, 1).name('Red');
-  layer5Folder.add(planetParams.color5.value, 'g', 0, 1).name('Green');
-  layer5Folder.add(planetParams.color5.value, 'b', 0, 1).name('Blue');
-  
-  const atmosphereFolder = gui.addFolder('Atmosphere');
-  atmosphereFolder.add(atmosphereParams.thickness, 'value', 0.1, 5).name('Thickness');
-  atmosphereFolder.add(atmosphereParams.particles, 'value', 1, 50000, 1).name('Particle Count');
-  atmosphereFolder.add(atmosphereParams.minParticleSize, 'value', 0, 200).name('Min Particle Size');
-  atmosphereFolder.add(atmosphereParams.maxParticleSize, 'value', 0, 200).name('Max Particle Size');
-  atmosphereFolder.add(atmosphereParams.density, 'value', -2, 2).name('Density');
-  atmosphereFolder.add(atmosphereParams.opacity, 'value', 0, 1).name('Opacity');
-  atmosphereFolder.add(atmosphereParams.scale, 'value', 1, 30).name('Scale');
-  atmosphereFolder.add(atmosphereParams.speed, 'value', 0, 0.1).name('Speed');
-  const atmosphereColorFolder = atmosphereFolder.addFolder('Color');
-  atmosphereColorFolder.add(atmosphereParams.color.value, 'r', 0, 1).name('Red');
-  atmosphereColorFolder.add(atmosphereParams.color.value, 'g', 0, 1).name('Green');
-  atmosphereColorFolder.add(atmosphereParams.color.value, 'b', 0, 1).name('Blue');
-  atmosphereFolder.onChange((value) => {
-    atmosphere.update();
-  });
+      bloomPass.threshold = preset.bloom.threshold;
+      bloomPass.strength = preset.bloom.strength;
+      bloomPass.radius = preset.bloom.radius;
 
-  const lightingFolder = gui.addFolder('Lighting');  
-  lightingFolder.add(planetParams.ambientIntensity, 'value', 0, 5).name('Ambient');
-  lightingFolder.add(planetParams.diffuseIntensity, 'value', 0, 5).name('Diffuse');
-  lightingFolder.add(planetParams.specularIntensity, 'value', 0, 5).name('Specular');
-  lightingFolder.add(planetParams.shininess, 'value', 0, 25).name('Shininess');
+      const lighting = preset.lighting;
+      planetParams.ambientIntensity.value = randomInRange(...lighting.ambient);
+      planetParams.diffuseIntensity.value = randomInRange(...lighting.diffuse);
+      planetParams.specularIntensity.value = randomInRange(...lighting.specular);
+      planetParams.shininess.value = randomInRange(...lighting.shininess);
 
-  const lightDirFolder = lightingFolder.addFolder('Direction').close();
-  lightDirFolder.add(planetParams.lightDirection.value, 'x', -1, 1).name('X');
-  lightDirFolder.add(planetParams.lightDirection.value, 'y', -1, 1).name('Y');
-  lightDirFolder.add(planetParams.lightDirection.value, 'z', -1, 1).name('Z');
+      if (preset.bump) {
+        planetParams.bumpStrength.value = randomInRange(...preset.bump.strength);
+        planetParams.bumpOffset.value = randomInRange(...preset.bump.offset);
+      }
+      
+      planetParams.offset.value = randomInRange(-1, 1);
+      planetParams.persistence.value = randomInRange(0.4, 0.6);
+      planetParams.lacunarity.value = randomInRange(1.8, 2.2);
 
-  const lightColorFolder = lightingFolder.addFolder('Color').close();
-  lightColorFolder.add(planetParams.lightColor.value, 'r', 0, 1).name('R');
-  lightColorFolder.add(planetParams.lightColor.value, 'g', 0, 1).name('G');
-  lightColorFolder.add(planetParams.lightColor.value, 'b', 0, 1).name('B');
+      const transitions = [randomInRange(0,3), randomInRange(0,3), randomInRange(0,3), randomInRange(0,3)];
+      transitions.sort((a,b) => a-b);
+      planetParams.transition2.value = transitions[0];
+      planetParams.transition3.value = transitions[1];
+      planetParams.transition4.value = transitions[2];
+      planetParams.transition5.value = transitions[3];
+      
+      planetParams.blend12.value = randomInRange(0.1, 0.3);
+      planetParams.blend23.value = randomInRange(0.1, 0.3);
+      planetParams.blend34.value = randomInRange(0.1, 0.3);
+      planetParams.blend45.value = randomInRange(0.1, 0.3);
+      
+      if (objectType === 'Asteroid' || objectType === 'Moon') {
+        atmosphere.visible = false;
+      } else {
+        atmosphere.visible = true;
+        atmosphereParams.opacity.value = randomInRange(0.3, 0.6);
+        atmosphereParams.color.value.setRGB(Math.random(), Math.random(), Math.random());
+      }
 
-  const bumpMapFolder = gui.addFolder('Bump Mapping');
-  bumpMapFolder.add(planetParams.bumpStrength, 'value', 0, 1).name('Bump Strength');
-  bumpMapFolder.add(planetParams.bumpOffset, 'value', 0.0001, 0.1).name('Bump Offset');
+      gui.controllers.forEach(c => c.updateDisplay());
+      atmosphere.update();
+    }
+  };
 
-  const postprocessingFolder = gui.addFolder('Post-Processing');
-  const bloomFolder = postprocessingFolder.addFolder('Bloom');
-  bloomFolder.add(bloomPass, 'threshold', 0, 1);
-  bloomFolder.add(bloomPass, 'strength', 0, 1);
-  bloomFolder.add(bloomPass, 'radius', 0, 2);
+  gui.add(celestialState, 'objectType', Object.keys(presets)).name('Celestial Object');
+  const randomnessButton = gui.add(actions, 'randomize').name('Generate');
+  randomnessButton.domElement.parentElement.parentElement.classList.add('cyber-button-container');
+
 }

@@ -1,3 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
 body {
   margin: 0;
+  --primary-color: #ff00ff; /* Cyan */
+  --secondary-color: #00ff00; /* Magenta */
+  --background-color: #0a0a2a;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.lil-gui {
+  --background-color: rgba(10, 10, 42, 0.8);
+  --widget-color: #00ffff;
+  --hover-color: #00ffff;
+  --focus-color: #00ff00;
+  --number-color: #00ff00;
+  --string-color: #00ff00;
+  border: 1px solid var(--primary-color);
+  backdrop-filter: blur(5px);
+  font-family: 'Orbitron', sans-serif;
+}
+
+.lil-gui .title {
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--primary-color);
+  font-weight: 700;
+}
+
+.lil-gui .name {
+  color: var(--primary-color);
+  font-weight: 400;
+}
+
+.lil-gui .widget:hover {
+  background: rgba(255, 0, 255, 0.2);
+}
+
+.cyber-button-container {
+  border: 1px solid var(--primary-color);
+  box-shadow: 0 0 5px var(--primary-color), inset 0 0 5px var(--primary-color);
+  transition: all 0.3s ease-in-out;
+  background-color: transparent;
+  width: calc(100% - 10px);
+  margin: 5px;
+}
+
+.cyber-button-container .widget {
+  width: 100% !important;
+  text-align: center;
+  color: var(--primary-color);
+  transition: all 0.3s ease-in-out;
+  font-weight: 700;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.cyber-button-container:hover {
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 15px var(--secondary-color), inset 0 0 15px var(--secondary-color);
+  animation: flicker 1.5s infinite;
+}
+
+.cyber-button-container:hover .widget {
+  color: var(--secondary-color);
+  letter-spacing: 2px;
+}
+
+/* Hide controllers by default */
+.lil-gui .children {
+  display: block;
+}
+
+/* Show on hover */
+.lil-gui:hover .children {
+  display: block;
+}
+
+@keyframes flicker {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 5px var(--secondary-color);
+  }
+  50% {
+    opacity: 0.8;
+    text-shadow: 0 0 10px var(--secondary-color);
+  }
+}
+
+#crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  display: none;
+  pointer-events: none;
+}
+
+#crosshair::before, #crosshair::after {
+  content: "";
+  position: absolute;
+  background-color: var(--primary-color);
+  box-shadow: 0 0 5px var(--primary-color);
+}
+
+#crosshair::before {
+  width: 100%;
+  height: 2px;
+  top: 9px;
+}
+
+#crosshair::after {
+  height: 100%;
+  width: 2px;
+  left: 9px;
 }

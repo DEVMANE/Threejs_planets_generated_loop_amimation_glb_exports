@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -72,7 +73,6 @@ function loadScene() {
 
   const scene = new THREE.Scene();
 
-  // https://opengameart.org/content/night-sky-skybox-generator
   scene.background = new THREE.CubeTextureLoader()
     .load( [
           'xpos.png',
@@ -84,16 +84,88 @@ function loadScene() {
         ] );
         
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableZoom = false;
-  controls.enablePan = false;
-  controls.autoRotate = true;
-  controls.autoRotateSpeed = 0.2;
   camera.position.z = 50;
+
+  const orbitControls = new OrbitControls(camera, renderer.domElement);
+  orbitControls.enableZoom = true;
+  orbitControls.enablePan = false;
+  orbitControls.autoRotate = true;
+  orbitControls.autoRotateSpeed = 0.2;
+
+  const pointerLockControls = new PointerLockControls(camera, document.body);
+  const crosshair = document.getElementById('crosshair');
+
+  let moveForward = false;
+  let moveBackward = false;
+  let moveLeft = false;
+  let moveRight = false;
+
+  const onKeyDown = function (event) {
+    switch (event.code) {
+      case 'ArrowUp':
+      case 'KeyW':
+        moveForward = true;
+        break;
+      case 'ArrowLeft':
+      case 'KeyA':
+        moveLeft = true;
+        break;
+      case 'ArrowDown':
+      case 'KeyS':
+        moveBackward = true;
+        break;
+      case 'ArrowRight':
+      case 'KeyD':
+        moveRight = true;
+        break;
+    }
+  };
+
+  const onKeyUp = function (event) {
+    switch (event.code) {
+      case 'ArrowUp':
+      case 'KeyW':
+        moveForward = false;
+        break;
+      case 'ArrowLeft':
+      case 'KeyA':
+        moveLeft = false;
+        break;
+      case 'ArrowDown':
+      case 'KeyS':
+        moveBackward = false;
+        break;
+      case 'ArrowRight':
+      case 'KeyD':
+        moveRight = false;
+        break;
+    }
+  };
+  
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('keyup', onKeyUp);
+  
+  renderer.domElement.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    if (pointerLockControls.isLocked) {
+      pointerLockControls.unlock();
+    } else {
+      pointerLockControls.lock();
+    }
+  });
+  
+  pointerLockControls.addEventListener('lock', () => {
+    orbitControls.enabled = false;
+    crosshair.style.display = 'block';
+  });
+
+  pointerLockControls.addEventListener('unlock', () => {
+    orbitControls.enabled = true;
+    crosshair.style.display = 'none';
+  });
 
   const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
-
   composer.addPass(renderPass);
  
   const bloomPass = new UnrealBloomPass();
@@ -125,16 +197,39 @@ function loadScene() {
 
   const planet = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 128), material);
   planet.geometry.computeTangents();
+  planet.visible = false; // Planet is initially hidden
   scene.add(planet);
 
   const atmosphere = new Atmosphere(atmosphereParams);
   planet.add(atmosphere);
 
+  const velocity = new THREE.Vector3();
+  const direction = new THREE.Vector3();
+
   function animate() {
     requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    
+    if (pointerLockControls.isLocked) {
+      velocity.x -= velocity.x * 10.0 * delta;
+      velocity.z -= velocity.z * 10.0 * delta;
+      
+      direction.z = Number(moveForward) - Number(moveBackward);
+      direction.x = Number(moveRight) - Number(moveLeft);
+      direction.normalize();
+
+      if(moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+      if(moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+
+      pointerLockControls.moveRight(-velocity.x * delta);
+      pointerLockControls.moveForward(-velocity.z * delta);
+    } else {
+      orbitControls.update();
+    }
+    
     atmosphere.material.uniforms.time.value = clock.getElapsedTime();
     atmosphere.rotation.y += 0.0002;
-    controls.update();
+
     composer.render();
     stats.update();
   }
@@ -147,7 +242,7 @@ function loadScene() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  createUI(planetParams, atmosphereParams, atmosphere, bloomPass);
+  createUI(planetParams, atmosphereParams, atmosphere, bloomPass, planet);
   animate();
 
   console.log('done');
