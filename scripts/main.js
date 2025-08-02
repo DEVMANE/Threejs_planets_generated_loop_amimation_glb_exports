@@ -42,7 +42,9 @@ const planetParams = {
   blend12: { value: 0.152 },
   blend23: { value: 0.152 },
   blend34: { value: 0.104 },
-  blend45: { value: 0.168 }
+  blend45: { value: 0.168 },
+  rotationSpeed: { value: 0.1 },
+  rotationDirection: { value: 'y' }
 }
 
 const atmosphereParams = {
@@ -56,7 +58,9 @@ const atmosphereParams = {
   scale: { value: 8 },
   color: { value: new THREE.Color(0xffffff) },
   speed: { value: 0.03 },
-  lightDirection: planetParams.lightDirection
+  lightDirection: planetParams.lightDirection,
+  rotationSpeed: { value: 0.1 },
+  rotationDirection: { value: 'y' }
 };
 
 function loadScene() {
@@ -228,7 +232,10 @@ function loadScene() {
     }
     
     atmosphere.material.uniforms.time.value = clock.getElapsedTime();
-    atmosphere.rotation.y += 0.0002;
+
+    // Rotate planet and atmosphere
+    planet.rotation[planetParams.rotationDirection.value] += planetParams.rotationSpeed.value * delta;
+    atmosphere.rotation[atmosphereParams.rotationDirection.value] += atmosphereParams.rotationSpeed.value * delta;
 
     composer.render();
     stats.update();

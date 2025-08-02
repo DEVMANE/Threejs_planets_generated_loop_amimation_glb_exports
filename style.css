@@ -10,8 +10,8 @@ body {
 
 .lil-gui {
   --background-color: rgba(10, 10, 42, 0.8);
-  --widget-color: #00ffff;
-  --hover-color: #00ffff;
+  --widget-color: #00ffff6e;
+  --hover-color: #00ffff6e;
   --focus-color: #00ff00;
   --number-color: #00ff00;
   --string-color: #00ff00;
@@ -32,7 +32,7 @@ body {
 }
 
 .lil-gui .widget:hover {
-  background: rgba(255, 0, 255, 0.2);
+  background: rgba(255, 0, 255, 0.189);
 }
 
 .cyber-button-container {
