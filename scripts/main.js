@@ -44,7 +44,13 @@ const planetParams = {
   blend34: { value: 0.104 },
   blend45: { value: 0.168 },
   rotationSpeed: { value: 0.1 },
-  rotationDirection: { value: 'y' }
+  rotationDirection: { value: 'y' },
+  liquidWaveStrength: { value: 0.1 },
+  liquidSpecularIntensity: { value: 1.5 },
+  liquidShininess: { value: 30.0 },
+  atmosphereTime: { value: 0 },
+  atmosphereSpeed: { value: 0.03 },
+  atmosphereScale: { value: 8 }
 }
 
 const atmosphereParams = {
@@ -93,7 +99,7 @@ function loadScene() {
   const orbitControls = new OrbitControls(camera, renderer.domElement);
   orbitControls.enableZoom = true;
   orbitControls.enablePan = false;
-  orbitControls.autoRotate = true;
+  orbitControls.autoRotate = false;
   orbitControls.autoRotateSpeed = 0.2;
 
   const pointerLockControls = new PointerLockControls(camera, document.body);
@@ -197,6 +203,7 @@ function loadScene() {
       `${noiseFunctions}
        void main() {`
     ),
+    transparent: false
   });
 
   const planet = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 128), material);
@@ -213,6 +220,7 @@ function loadScene() {
   function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
+    const elapsedTime = clock.getElapsedTime();
     
     if (pointerLockControls.isLocked) {
       velocity.x -= velocity.x * 10.0 * delta;
@@ -231,7 +239,13 @@ function loadScene() {
       orbitControls.update();
     }
     
-    atmosphere.material.uniforms.time.value = clock.getElapsedTime();
+    // Lock light direction relative to the camera's current orientation
+    const cameraLightDirection = new THREE.Vector3(1, 1, 1).normalize(); 
+    cameraLightDirection.applyQuaternion(camera.quaternion); 
+    planetParams.lightDirection.value.copy(cameraLightDirection);
+
+    atmosphere.material.uniforms.time.value = elapsedTime;
+    planetParams.atmosphereTime.value = elapsedTime;
 
     // Rotate planet and atmosphere
     planet.rotation[planetParams.rotationDirection.value] += planetParams.rotationSpeed.value * delta;

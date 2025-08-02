@@ -169,15 +169,22 @@
     uniform float persistence;
     uniform float lacunarity;
     uniform int octaves;
+    uniform float transition2;
 
     // Bump mapping
     uniform float bumpStrength;
     uniform float bumpOffset;
 
+    // Liquid layer
+    uniform float liquidWaveStrength;
+    uniform float atmosphereTime;
+    uniform float atmosphereSpeed;
+
     varying vec3 fragPosition;
     varying vec3 fragNormal;
     varying vec3 fragTangent;
     varying vec3 fragBitangent;
+    varying float fragHeight;
 
     void main() {
       // Calculate terrain height
@@ -191,6 +198,12 @@
         persistence, 
         lacunarity, 
         octaves);
+
+      // Add waves to the liquid layer
+      if (h < transition2) {
+        h += simplex3(position * 10.0 + atmosphereTime * atmosphereSpeed) * liquidWaveStrength;
+      }
+      fragHeight = h;
 
       vec3 pos = position * (radius + h);
 
@@ -244,23 +257,22 @@
     uniform vec3 lightDirection;
     uniform vec3 lightColor;
 
+    // Liquid layer
+    uniform float liquidSpecularIntensity;
+    uniform float liquidShininess;
+    uniform float atmosphereTime;
+    uniform float atmosphereSpeed;
+    uniform float atmosphereScale;
+    
     varying vec3 fragPosition;
     varying vec3 fragNormal;
     varying vec3 fragTangent;
     varying vec3 fragBitangent;
+    varying float fragHeight;
 
     void main() {
       // Calculate terrain height
-      float h = terrainHeight(
-        type,
-        fragPosition,
-        amplitude, 
-        sharpness,
-        offset,
-        period, 
-        persistence, 
-        lacunarity, 
-        octaves);
+      float h = fragHeight;
 
       vec3 dx = bumpOffset * fragTangent;
       float h_dx = terrainHeight(
@@ -304,11 +316,17 @@
 
       float diffuse = diffuseIntensity * max(0.0, dot(N, -L));
 
-      // https://ogldev.org/www/tutorial19/tutorial19.html
-      float specularFalloff = clamp((transition3 - h) / transition3, 0.0, 1.0);
-      float specular = max(0.0, specularFalloff * specularIntensity * pow(dot(V, R), shininess));
+      float specular;
+      if (h < transition2) {
+        specular = max(0.0, liquidSpecularIntensity * pow(dot(V, R), liquidShininess));
+      } else {
+        float specularFalloff = clamp((transition3 - h) / transition3, 0.0, 1.0);
+        specular = max(0.0, specularFalloff * specularIntensity * pow(dot(V, R), shininess));
+      }
 
-      float light = ambientIntensity + diffuse + specular;
+      // Cloud shadows
+      float cloudShadow = simplex3((atmosphereTime * atmosphereSpeed) + fragPosition / atmosphereScale);
+      float light = ambientIntensity + diffuse + specular * (1.0 - cloudShadow);
 
       // Blender colors layer by layer
       vec3 color12 = mix(
